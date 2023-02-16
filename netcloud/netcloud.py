@@ -14,13 +14,16 @@ class Netcloud:
     RESULT_LIMIT = 500
 
     def __init__(self, xcpapiid, xcpapikey, xecmapiid, xecmapikey):
-        self.headers = {
+        headers = {
             'X-CP-API-ID': xcpapiid,
             'X-CP-API-KEY': xcpapikey,
             'X-ECM-API-ID': xecmapiid,
             'X-ECM-API-KEY': xecmapikey,
             'Content-Type': 'application/json' 
         }
+
+        self.session = requests.Session()
+        self.session.headers.update(headers)
     
     def get_generic(self, endpoint:str, fields:dict):
         url  = self.API_URL + endpoint
@@ -31,9 +34,14 @@ class Netcloud:
         
         url = self.API_URL + endpoint
 
-        resp = requests.get(url, headers=self.headers)
+        resp = self.session.get(url)
         
         return resp
+
+    # use for any next url
+    def get_url(self, url):
+        resp = self.session.get(url)
+        return resp.text
 
 
     def get_group(self, group_name):
@@ -41,7 +49,7 @@ class Netcloud:
 
         url = self.API_URL + endpoint
 
-        resp = requests.get(url, headers=self.headers)
+        resp = self.session.get(url)
 
         return resp.text
 
@@ -54,8 +62,9 @@ class Netcloud:
 
         url = self.API_URL + endpoint
         
-        resp = requests.get(url, headers=self.headers)
+        resp = self.session.get(url)
         return resp.text
+        
 
     def get_net_devices(self, **kwargs):
         endpoint = '/net_devices/'
@@ -65,7 +74,7 @@ class Netcloud:
 
         url = self.API_URL + endpoint
         
-        resp = requests.get(url, headers=self.headers)
+        resp = self.session.get(url)
         return resp.text
 
 
@@ -76,7 +85,7 @@ class Netcloud:
 
         devices = []
         while url:
-            resp = requests.get(url, headers=self.headers)
+            resp = self.session.get(url)
 
             resp_json = json.loads(resp.text)
             #print(json.dumps(resp_json, indent=2))
@@ -107,7 +116,7 @@ class Netcloud:
         bytes_out = 0
         
         while url:
-            resp = requests.get(url, headers=self.headers)
+            resp = self.session.get(url)
 
             try:
                 resp_json = json.loads(resp.text)
@@ -139,17 +148,20 @@ class Netcloud:
             resp.raise_for_status()
         
             resp_json = json.loads(resp.text)
-            print(json.dumps(resp_json, indent=2))
+            #print(json.dumps(resp_json, indent=2))
 
-            for entry in resp_json:
+            for entry in resp_json['data']:
                 log_entries.append(entry)
             
-            url = resp_json['meta']['next']
+            #url = resp_json['meta']['next']
+            url = None
 
             if url is None:
                 break
 
-            resp = requests.get(url, headers=self.headers)
+            resp = self.session.get(url)
 
         return log_entries
+
+    
         
